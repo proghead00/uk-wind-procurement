@@ -172,10 +172,10 @@ npm test
 ## Deployed Application
 
 | | |
-|--|--|
-| **Frontend** | https://windpulse-xwrp7k.vercel.app *(link to be updated after deployment)* |
-| **Backend** | Deployed on Railway/Render *(link to be updated)* |
-| **Repo** | https://github.com/proghead00/xwrp7k |
+|---|---|
+| **Live Application** | https://xwrp7k.vercel.app |
+| **Public API** | https://xwrp7k.vercel.app/api/health |
+| **GitHub Repository** | https://github.com/proghead00/xwrp7k |
 
 ---
 
