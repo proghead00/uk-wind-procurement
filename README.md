@@ -18,7 +18,7 @@ WindPulse helps UK energy utility procurement teams make informed day-ahead elec
 ## Directory Structure
 
 ```
-xwrp7k/
+uk-wind-procurement/
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
@@ -173,9 +173,9 @@ npm test
 
 | | |
 |---|---|
-| **Live Application** | https://xwrp7k.vercel.app |
-| **Public API** | https://xwrp7k.vercel.app/api/health |
-| **GitHub Repository** | https://github.com/proghead00/xwrp7k |
+| **Live Application** | https://uk-wind-procurement.vercel.app (also: https://xwrp7k.vercel.app) |
+| **Public API** | https://uk-wind-procurement.vercel.app/api/health |
+| **GitHub Repository** | https://github.com/proghead00/uk-wind-procurement |
 
 ---
 

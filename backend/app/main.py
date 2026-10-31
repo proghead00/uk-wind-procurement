@@ -48,7 +48,7 @@ app = FastAPI(
 
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,https://xwrp7k.vercel.app",
+    "http://localhost:3000,http://localhost:5173,https://uk-wind-procurement.vercel.app,https://xwrp7k.vercel.app",
 ).split(",")
 
 app.add_middleware(

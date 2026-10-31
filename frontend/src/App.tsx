@@ -84,7 +84,7 @@ function App() {
               Elexon API Docs
             </a>
             <a
-              href="https://github.com/proghead00/xwrp7k"
+              href="https://github.com/proghead00/uk-wind-procurement"
               target="_blank"
               rel="noopener noreferrer"
             >
