@@ -1,5 +1,5 @@
 """
-FastAPI application – Wind Procurement Intelligence Dashboard
+FastAPI application: Wind Procurement Intelligence Dashboard
 
 Endpoints:
   GET /api/health                 - Health check
@@ -13,11 +13,12 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .elexon_client import (
     fetch_latest_wind_forecast,
@@ -52,29 +53,27 @@ ALLOWED_ORIGINS = os.getenv(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restricted further per ALLOWED_ORIGINS in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
 )
 
-# Simple in-process cache for the expensive January analysis
 _cache: dict = {}
-CACHE_TTL_SECONDS = 3600  # 1 hour
-
+CACHE_TTL_SECONDS = 3600
 
 def _cache_valid(key: str) -> bool:
     if key not in _cache:
         return False
     return (datetime.now(timezone.utc) - _cache[key]["ts"]).seconds < CACHE_TTL_SECONDS
 
+router = APIRouter()
 
-@app.get("/api/health")
+@router.get("/health")
 async def health():
     return {"status": "ok", "ts": datetime.now(timezone.utc).isoformat()}
 
-
-@app.get("/api/forecasts/latest")
+@router.get("/forecasts/latest")
 async def get_latest_forecast():
     """Return the most recent WINDFOR forecast series."""
     try:
@@ -90,8 +89,7 @@ async def get_latest_forecast():
         logger.exception("Error fetching latest forecast")
         raise HTTPException(status_code=502, detail=f"Elexon API error: {str(exc)}")
 
-
-@app.get("/api/actuals")
+@router.get("/actuals")
 async def get_actuals(
     days: int = Query(default=7, ge=1, le=31, description="Number of past days to fetch"),
 ):
@@ -110,18 +108,13 @@ async def get_actuals(
         logger.exception("Error fetching actuals")
         raise HTTPException(status_code=502, detail=f"Elexon API error: {str(exc)}")
 
-
-@app.get("/api/january-analysis")
+@router.get("/january-analysis")
 async def get_january_analysis():
     """
     Full January 2026 wind procurement analysis.
-
-    Fetches all WINDFOR forecasts published Dec 30 2025 – Feb 1 2026
-    and all FUELHH actuals published Jan 1 – Feb 2 2026.
     Applies day-ahead cutoff (noon UTC D-1) to select eligible forecasts.
     Computes MAE, RMSE, bias with lead-time breakdown.
-
-    This is expensive (~5-10s) and cached for 1 hour.
+    Cached for 1 hour.
     """
     cache_key = "january_2026"
     if _cache_valid(cache_key):
@@ -130,10 +123,6 @@ async def get_january_analysis():
 
     try:
         logger.info("Fetching January 2026 data from Elexon API...")
-
-        # Fetch in parallel
-        # WINDFOR: forecasts published Dec 30 – Feb 1 (to cover D-1 decisions for all Jan days)
-        # FUELHH: actuals published Jan 1 – Feb 2 (to cover all Jan delivery days)
         forecasts_task = fetch_wind_forecasts(
             publish_from="2025-12-30T00:00:00Z",
             publish_to="2026-02-01T00:00:00Z",
@@ -144,25 +133,10 @@ async def get_january_analysis():
         )
         raw_forecasts, raw_actuals = await asyncio.gather(forecasts_task, actuals_task)
 
-        logger.info(
-            "Fetched %d forecast records, %d actual records",
-            len(raw_forecasts),
-            len(raw_actuals),
-        )
-
-        # Process actuals
         actuals = process_actuals(raw_actuals)
-
-        # Build January delivery hours
         delivery_hours = build_january_delivery_hours()
-
-        # Select decision-time forecasts (no leakage)
         decision_forecasts = select_decision_time_forecasts(raw_forecasts, delivery_hours)
-
-        # Compute accuracy metrics
         metrics = compute_accuracy_metrics(decision_forecasts, actuals)
-
-        # Build daily summary for chart
         daily_summary = _build_daily_summary(decision_forecasts, actuals, delivery_hours)
 
         result = {
@@ -186,13 +160,11 @@ async def get_january_analysis():
         logger.exception("Error computing January analysis")
         raise HTTPException(status_code=502, detail=f"Analysis error: {str(exc)}")
 
-
 def _build_daily_summary(
     forecasts: dict[str, dict],
     actuals: dict[str, float],
     delivery_hours: list[str],
 ) -> list[dict]:
-    """Build per-day average forecast vs actual for charting."""
     daily: dict[str, dict] = {}
     for hour in delivery_hours:
         date_key = hour[:10]
@@ -217,13 +189,9 @@ def _build_daily_summary(
         })
     return result
 
-
-@app.get("/api/dashboard")
+@router.get("/dashboard")
 async def get_dashboard():
-    """
-    Dashboard data: latest forecast + recent actuals for live view.
-    Uses light API calls (no heavy January analysis).
-    """
+    """Dashboard data: latest forecast + recent actuals for live view."""
     try:
         forecast_task = fetch_latest_wind_forecast()
         now = datetime.now(timezone.utc)
@@ -253,3 +221,20 @@ async def get_dashboard():
     except Exception as exc:
         logger.exception("Error fetching dashboard data")
         raise HTTPException(status_code=502, detail=f"Elexon API error: {str(exc)}")
+
+# Register routes with both /api prefix and root prefix
+app.include_router(router, prefix="/api")
+app.include_router(router)
+
+# Mount frontend static distribution if present
+potential_dist_paths = [
+    Path(__file__).resolve().parent.parent.parent / "frontend" / "dist",
+    Path(__file__).resolve().parent.parent / "frontend" / "dist",
+    Path("/app/frontend/dist"),
+    Path("./frontend/dist"),
+]
+
+for p in potential_dist_paths:
+    if p.exists() and (p / "index.html").exists():
+        app.mount("/", StaticFiles(directory=str(p), html=True), name="static")
+        break
