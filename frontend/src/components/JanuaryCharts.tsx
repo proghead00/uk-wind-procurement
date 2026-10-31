@@ -8,10 +8,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  ErrorBar,
 } from 'recharts';
 import type { JanuaryAnalysis } from '../types';
+import { ForecastIcon, ActualsIcon, TargetIcon } from './Icons';
 
 interface Props {
   analysis: JanuaryAnalysis;
@@ -19,39 +18,53 @@ interface Props {
 
 const DailyTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const forecast = payload.find((p: any) => p.dataKey === 'forecast')?.value;
+  const actual = payload.find((p: any) => p.dataKey === 'actual')?.value;
+  const delta = forecast != null && actual != null ? forecast - actual : null;
+
   return (
-    <div className="custom-tooltip">
-      <div className="custom-tooltip__label">{label}</div>
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__header">Date: 2026-{label} UTC</div>
       {payload.map((p: any) => (
-        <div key={p.name} className="custom-tooltip__row">
-          <span className="custom-tooltip__key">{p.name}</span>
-          <span className="custom-tooltip__val" style={{ color: p.color }}>
-            {p.value != null ? `${Math.round(p.value).toLocaleString()} MW` : '—'}
+        <div key={p.name} className="chart-tooltip__row">
+          <span style={{ color: p.color }}>{p.name}:</span>
+          <span className="chart-tooltip__val" style={{ color: p.color }}>
+            {p.value != null ? `${Math.round(p.value).toLocaleString()} MW` : 'N/A'}
           </span>
         </div>
       ))}
+      {delta != null && (
+        <div className="chart-tooltip__row" style={{ marginTop: 6, borderTop: '1px solid var(--border-subtle)', paddingTop: 4 }}>
+          <span style={{ color: 'var(--text-muted)' }}>Delta (F - A):</span>
+          <span className="chart-tooltip__val" style={{ color: delta > 0 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+            {delta > 0 ? '+' : ''}{Math.round(delta).toLocaleString()} MW
+          </span>
+        </div>
+      )}
     </div>
   );
 };
 
 const ErrorTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
+  const val = payload[0]?.value;
   return (
-    <div className="custom-tooltip">
-      <div className="custom-tooltip__label">{label}</div>
-      {payload.map((p: any) => (
-        <div key={p.name} className="custom-tooltip__row">
-          <span className="custom-tooltip__key">{p.name}</span>
-          <span
-            className="custom-tooltip__val"
-            style={{
-              color: p.value > 0 ? '#ff5252' : p.value < 0 ? '#00e676' : 'var(--text-secondary)',
-            }}
-          >
-            {p.value != null ? `${p.value > 0 ? '+' : ''}${Math.round(p.value).toLocaleString()} MW` : '—'}
-          </span>
-        </div>
-      ))}
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__header">Date: 2026-{label} UTC</div>
+      <div className="chart-tooltip__row">
+        <span style={{ color: 'var(--text-secondary)' }}>Daily Net Bias:</span>
+        <span
+          className="chart-tooltip__val"
+          style={{
+            color: val > 0 ? 'var(--accent-rose)' : val < 0 ? 'var(--accent-emerald)' : 'var(--text-primary)',
+          }}
+        >
+          {val != null ? `${val > 0 ? '+' : ''}${Math.round(val).toLocaleString()} MW` : 'N/A'}
+        </span>
+      </div>
+      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 4 }}>
+        {val > 0 ? 'Over-forecast: wind was below prediction' : 'Under-forecast: wind exceeded prediction'}
+      </div>
     </div>
   );
 };
@@ -59,15 +72,13 @@ const ErrorTooltip = ({ active, payload, label }: any) => {
 export const JanuaryCharts: React.FC<Props> = ({ analysis }) => {
   const { dailySummary, metrics } = analysis;
 
-  // Daily comparison chart data
   const dailyData = dailySummary.map((d) => ({
-    date: d.date.slice(5), // MM-DD
+    date: d.date.slice(5),
     forecast: d.avgForecast,
     actual: d.avgActual,
     error: d.avgForecast != null && d.avgActual != null ? d.avgForecast - d.avgActual : null,
   }));
 
-  // Lead-time bucket data
   const bucketData = metrics.leadTimeBuckets.map((b) => ({
     label: b.label,
     MAE: Math.round(b.mae),
@@ -77,46 +88,54 @@ export const JanuaryCharts: React.FC<Props> = ({ analysis }) => {
   }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* ---- Daily Avg Forecast vs Actual ---- */}
-      <div className="chart-card fade-in">
-        <div className="chart-card__title">📅 January 2026 – Daily Average: Forecast vs Actual</div>
-        <div className="chart-card__desc">
-          Decision-time forecasts (latest eligible before noon UTC D−1) averaged per day against realised actuals. Units: MW.
-        </div>
-        <div className="chart-legend">
-          <div className="legend-item">
-            <div className="legend-dot" style={{ background: '#00e5ff' }} />
-            <span>Avg Forecast (decision-time)</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Daily Average Profile */}
+      <div className="chart-panel">
+        <div className="chart-panel__header">
+          <div>
+            <div className="chart-panel__title">
+              <ForecastIcon size={16} color="var(--accent-cyan)" />
+              Daily Average Profile: Decision-Time Forecast vs Actual (January 2026)
+            </div>
+            <div className="chart-panel__desc">
+              Latest eligible WINDFOR forecasts published at or before noon UTC on D-1, compared against realised FUELHH actuals.
+            </div>
           </div>
-          <div className="legend-item">
-            <div className="legend-dot" style={{ background: '#00e676' }} />
-            <span>Avg Actual (FUELHH)</span>
+          <div className="chart-legend">
+            <div className="legend-chip">
+              <div className="legend-indicator" style={{ backgroundColor: 'var(--accent-cyan)' }} />
+              <span>Daily Avg Forecast</span>
+            </div>
+            <div className="legend-chip">
+              <div className="legend-indicator" style={{ backgroundColor: 'var(--accent-amber)' }} />
+              <span>Daily Avg Actual</span>
+            </div>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={dailyData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(33,150,243,0.08)" vertical={false} />
+
+        <ResponsiveContainer width="100%" height={260}>
+          <ComposedChart data={dailyData} margin={{ top: 8, right: 12, bottom: 4, left: 8 }}>
+            <CartesianGrid strokeDasharray="2 2" stroke="var(--border-subtle)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-              axisLine={false}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+              axisLine={{ stroke: 'var(--border-subtle)' }}
               tickLine={false}
               interval={2}
             />
             <YAxis
-              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-              width={40}
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)} GW`}
+              width={48}
             />
             <Tooltip content={<DailyTooltip />} />
             <Line
               type="monotone"
               dataKey="forecast"
               name="Forecast"
-              stroke="#00e5ff"
+              stroke="#0EA5E9"
               strokeWidth={2}
               dot={false}
               connectNulls={false}
@@ -125,8 +144,8 @@ export const JanuaryCharts: React.FC<Props> = ({ analysis }) => {
               type="monotone"
               dataKey="actual"
               name="Actual"
-              stroke="#00e676"
-              strokeWidth={2.5}
+              stroke="#F59E0B"
+              strokeWidth={2}
               dot={false}
               connectNulls={false}
             />
@@ -134,110 +153,91 @@ export const JanuaryCharts: React.FC<Props> = ({ analysis }) => {
         </ResponsiveContainer>
       </div>
 
-      {/* ---- Daily Error ---- */}
-      <div className="chart-card fade-in">
-        <div className="chart-card__title">📊 Daily Forecast Error (Forecast − Actual)</div>
-        <div className="chart-card__desc">
-          Positive = over-forecast (wind was less than expected → procure more than planned).
-          Negative = under-forecast (wind exceeded forecast → procured too much). Units: MW.
+      {/* Daily Error Distribution */}
+      <div className="chart-panel">
+        <div className="chart-panel__header">
+          <div>
+            <div className="chart-panel__title">
+              <ActualsIcon size={16} color="var(--accent-amber)" />
+              Daily Forecast Error (Forecast - Actual)
+            </div>
+            <div className="chart-panel__desc">
+              Positive values indicate over-prediction (generation deficit requiring thermal backup). Negative values indicate under-prediction.
+            </div>
+          </div>
         </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <ComposedChart data={dailyData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(33,150,243,0.08)" vertical={false} />
+
+        <ResponsiveContainer width="100%" height={180}>
+          <ComposedChart data={dailyData} margin={{ top: 8, right: 12, bottom: 4, left: 8 }}>
+            <CartesianGrid strokeDasharray="2 2" stroke="var(--border-subtle)" vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-              axisLine={false}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}
+              axisLine={{ stroke: 'var(--border-subtle)' }}
               tickLine={false}
               interval={2}
             />
             <YAxis
-              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--font-mono)' }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `${v >= 0 ? '+' : ''}${(v / 1000).toFixed(1)}k`}
-              width={50}
+              width={48}
             />
             <Tooltip content={<ErrorTooltip />} />
             <Bar
               dataKey="error"
-              name="Error (F−A)"
-              fill="#2196f3"
-              radius={[3, 3, 0, 0]}
-              maxBarSize={24}
-              // Color bars by sign
-              label={false}
+              name="Daily Error"
+              fill="#0EA5E9"
+              radius={[2, 2, 0, 0]}
+              maxBarSize={18}
             />
-            {/* Zero line */}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {/* ---- Lead-time Accuracy ---- */}
+      {/* Lead-Time Accuracy Matrix */}
       {bucketData.length > 0 && (
-        <div className="chart-card fade-in">
-          <div className="chart-card__title">🎯 Accuracy by Forecast Lead Time</div>
-          <div className="chart-card__desc">
-            MAE and RMSE grouped by how far ahead the forecast was published before delivery. Units: MW.
-          </div>
-          <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#2196f3' }} />
-              <span>MAE</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#7c4dff' }} />
-              <span>RMSE</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-dot" style={{ background: '#ffab40' }} />
-              <span>Bias (F−A)</span>
+        <div className="chart-panel">
+          <div className="chart-panel__header">
+            <div>
+              <div className="chart-panel__title">
+                <TargetIcon size={16} color="var(--accent-emerald)" />
+                Lead-Time Performance Matrix
+              </div>
+              <div className="chart-panel__desc">
+                Error quantification stratified by publication lead time before delivery hour. Shorter lead times allow tighter thermal buffer sizing.
+              </div>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <ComposedChart data={bucketData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(33,150,243,0.08)" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: 'var(--text-muted)', fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
-                width={48}
-              />
-              <Tooltip />
-              <Bar dataKey="MAE" fill="#2196f3" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="RMSE" fill="#7c4dff" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="Bias" fill="#ffab40" radius={[4, 4, 0, 0]} maxBarSize={40} />
-            </ComposedChart>
-          </ResponsiveContainer>
 
-          {/* Lead-time table */}
-          <div className="data-table-wrap" style={{ marginTop: 20 }}>
+          <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Lead Time</th>
-                  <th>n</th>
-                  <th>MAE (MW)</th>
-                  <th>RMSE (MW)</th>
-                  <th>Bias (MW)</th>
+                  <th>Lead Time Horizon</th>
+                  <th style={{ textAlign: 'right' }}>Observations (n)</th>
+                  <th style={{ textAlign: 'right' }}>MAE (MW)</th>
+                  <th style={{ textAlign: 'right' }}>RMSE (MW)</th>
+                  <th style={{ textAlign: 'right' }}>Mean Bias (MW)</th>
+                  <th>Procurement Impact</th>
                 </tr>
               </thead>
               <tbody>
                 {bucketData.map((b) => (
                   <tr key={b.label}>
-                    <td>{b.label}</td>
-                    <td>{b.count}</td>
-                    <td>{b.MAE.toLocaleString()}</td>
-                    <td>{b.RMSE.toLocaleString()}</td>
-                    <td className={b.Bias > 0 ? 'metric-positive' : b.Bias < 0 ? 'metric-negative' : ''}>
+                    <td style={{ fontWeight: 600 }}>{b.label}</td>
+                    <td style={{ textAlign: 'right' }}>{b.count}</td>
+                    <td style={{ textAlign: 'right' }}>{b.MAE.toLocaleString()}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{b.RMSE.toLocaleString()}</td>
+                    <td
+                      style={{ textAlign: 'right' }}
+                      className={b.Bias > 0 ? 'delta-positive' : b.Bias < 0 ? 'delta-negative' : ''}
+                    >
                       {b.Bias > 0 ? '+' : ''}{b.Bias.toLocaleString()}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      {b.Bias > 0 ? 'Over-forecast tendency (plan thermal backup)' : 'Under-forecast tendency (surplus risk)'}
                     </td>
                   </tr>
                 ))}

@@ -82,17 +82,17 @@ describe('App smoke tests', () => {
 
   it('renders navigation buttons', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: /Live Dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Jan 2026 Analysis/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Live Operations/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /January 2026 Verification/i })).toBeInTheDocument();
   });
 
   it('shows dashboard page by default', () => {
     render(<App />);
-    expect(screen.getByText(/Day-Ahead Wind Procurement/i)).toBeInTheDocument();
+    expect(screen.getByText(/Day-Ahead Wind Procurement Desk/i)).toBeInTheDocument();
   });
 
-  it('shows UK Wind Power Intelligence eyebrow', () => {
+  it('shows operational telemetry strip', () => {
     render(<App />);
-    expect(screen.getByText(/UK Wind Power Intelligence/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/National Grid GB/i)[0]).toBeInTheDocument();
   });
 });

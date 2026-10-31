@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './index.css';
 import { DashboardPage } from './pages/DashboardPage';
 import { AnalysisPage } from './pages/AnalysisPage';
-
+import { WindIcon } from './components/Icons';
 import { api } from './api';
 
 type Page = 'dashboard' | 'analysis';
@@ -11,7 +11,6 @@ function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [apiStatus, setApiStatus] = useState<'ok' | 'loading' | 'error'>('loading');
 
-  // Health check on mount
   React.useEffect(() => {
     api.health()
       .then(() => setApiStatus('ok'))
@@ -19,76 +18,78 @@ function App() {
   }, []);
 
   return (
-    <div className="app">
-      {/* ---- Header ---- */}
-      <header className="header">
-        <div className="container">
-          <div className="header__inner">
-            <div className="logo">
-              <div className="logo__icon">🌬️</div>
-              <div className="logo__name">Wind<span>Pulse</span></div>
-              <div className="logo__badge">UK</div>
+    <div className="app-container">
+      {/* Shell Header */}
+      <header className="shell-header">
+        <div className="shell-header__inner">
+          <div className="brand">
+            <div className="brand-badge">
+              <WindIcon size={18} />
             </div>
-
-            <nav className="nav">
-              <button
-                id="nav-dashboard"
-                className={`nav__link ${page === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setPage('dashboard')}
-              >
-                Live Dashboard
-              </button>
-              <button
-                id="nav-analysis"
-                className={`nav__link ${page === 'analysis' ? 'active' : ''}`}
-                onClick={() => setPage('analysis')}
-              >
-                Jan 2026 Analysis
-              </button>
-            </nav>
-
-            <div className="header__status">
-              <div
-                className={`status-dot ${apiStatus === 'loading' ? 'loading' : apiStatus === 'error' ? 'error' : ''}`}
-              />
-              <span>
-                {apiStatus === 'loading' ? 'Connecting…' : apiStatus === 'error' ? 'API offline' : 'Elexon BMRS Live'}
-              </span>
+            <div className="brand-text">
+              Wind<span>Pulse</span>
             </div>
+            <span className="brand-market">GB Market</span>
+          </div>
+
+          <nav className="nav-group">
+            <button
+              id="nav-dashboard"
+              className={`nav-tab ${page === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setPage('dashboard')}
+            >
+              Live Operations
+            </button>
+            <button
+              id="nav-analysis"
+              className={`nav-tab ${page === 'analysis' ? 'active' : ''}`}
+              onClick={() => setPage('analysis')}
+            >
+              January 2026 Verification
+            </button>
+          </nav>
+
+          <div className="stream-status">
+            <span
+              className={`status-beacon ${apiStatus === 'loading' ? 'loading' : apiStatus === 'error' ? 'error' : ''}`}
+            />
+            <span>
+              {apiStatus === 'loading'
+                ? 'Connecting to Elexon...'
+                : apiStatus === 'error'
+                ? 'Elexon API Disconnected'
+                : 'Elexon BMRS Live Feed'}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* ---- Main Content ---- */}
-      <main className="container" style={{ flex: 1, paddingTop: 0, paddingBottom: 40 }}>
+      {/* Main Workspace */}
+      <main className="workspace-main">
         {page === 'dashboard' ? <DashboardPage /> : <AnalysisPage />}
       </main>
 
-      {/* ---- Footer ---- */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer__inner">
-            <div className="footer__text">
-              WindPulse · Data: Elexon BMRS API · National GB wind only · UTC timestamps
-            </div>
-            <div className="footer__links">
-              <a
-                href="https://bmrs.elexon.co.uk/api-documentation"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer__link"
-              >
-                Elexon API Docs
-              </a>
-              <a
-                href="https://github.com/susnatoww/xwrp7k"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footer__link"
-              >
-                GitHub
-              </a>
-            </div>
+      {/* Shell Footer */}
+      <footer className="shell-footer">
+        <div className="shell-footer__inner">
+          <div>
+            WindPulse Intelligence Desk | Data Provider: Elexon BMRS API | Settlement: National Grid GB | Standard: UTC
+          </div>
+          <div className="shell-footer__links">
+            <a
+              href="https://bmrs.elexon.co.uk/api-documentation"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Elexon API Docs
+            </a>
+            <a
+              href="https://github.com/proghead00/xwrp7k"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub Repository
+            </a>
           </div>
         </div>
       </footer>

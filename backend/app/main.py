@@ -167,7 +167,7 @@ async def get_january_analysis():
 
         result = {
             "period": "January 2026",
-            "cutoffAssumption": "Noon UTC (12:00 UTC) on D-1 — documented assumption, not a verified market rule",
+            "cutoffAssumption": "Noon UTC (12:00 UTC) on D-1: documented assumption, not a verified market rule",
             "timezone": "UTC (January = UTC = Europe/London winter)",
             "dataSource": "Elexon BMRS (FUELHH actuals, WINDFOR forecasts)",
             "units": "MW (megawatts)",

@@ -82,7 +82,7 @@ For each delivery hour H in January 2026:
 1. Calculate cutoff = `(delivery_date - 1 day) @ 12:00:00 UTC`
 2. Filter WINDFOR records to those with `publishTime <= cutoff`
 3. Select the **latest** (most recently published) eligible forecast
-4. Records with no eligible forecast are excluded — never zero-filled
+4. Records with no eligible forecast are excluded; never zero-filled.
 
 ### Resolution Alignment
 - FUELHH (30-min) actuals → averaged to hourly intervals to match WINDFOR (60-min)

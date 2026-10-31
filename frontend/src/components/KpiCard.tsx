@@ -1,36 +1,43 @@
 import React from 'react';
 
-type AccentColor = 'blue' | 'cyan' | 'green' | 'amber' | 'purple';
+type AccentType = 'cyan' | 'amber' | 'emerald' | 'rose' | 'indigo';
 
 interface KpiCardProps {
   label: string;
   value: string | number | null;
   unit?: string;
   sub?: string;
-  icon: string;
-  accent: AccentColor;
+  icon?: React.ReactNode;
+  accent?: AccentType;
   loading?: boolean;
 }
 
 export const KpiCard: React.FC<KpiCardProps> = ({
-  label, value, unit, sub, icon, accent, loading,
+  label,
+  value,
+  unit,
+  sub,
+  icon,
+  accent = 'cyan',
+  loading,
 }) => (
-  <div className="kpi-card fade-in">
-    <div className={`kpi-card__accent ${accent}`} />
-    <div className="kpi-card__icon">{icon}</div>
-    <div className="kpi-card__label">{label}</div>
-    <div className="kpi-card__value">
+  <div className={`metric-card accent-${accent}`}>
+    <div className="metric-card__header">
+      <span className="metric-card__label">{label}</span>
+      {icon && <span className="metric-card__icon">{icon}</span>}
+    </div>
+    <div className="metric-card__value tabular-nums">
       {loading ? (
-        <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>—</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>...</span>
       ) : value === null || value === undefined ? (
-        <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>N/A</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>N/A</span>
       ) : (
         <>
           {value}
-          {unit && <span className="kpi-card__unit">{unit}</span>}
+          {unit && <span className="metric-card__unit">{unit}</span>}
         </>
       )}
     </div>
-    {sub && <div className="kpi-card__sub">{sub}</div>}
+    {sub && <div className="metric-card__meta">{sub}</div>}
   </div>
 );
