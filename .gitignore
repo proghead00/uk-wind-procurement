@@ -13,3 +13,5 @@ frontend/.vite/
 .coverage
 htmlcov/
 .vercel
+DEMO_SCRIPT.md
+*demo*
